@@ -14,6 +14,10 @@
                         </div>
                     @endif
 
+                    @if (session('message'))
+                        <x-alert :type="'danger'" :message="session('message')"/>
+                    @endif
+
                     You are logged in!
                 </div>
             </div>
