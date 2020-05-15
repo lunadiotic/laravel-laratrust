@@ -2,14 +2,16 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Permission;
 use App\Http\Controllers\Controller;
+use App\Permission;
+use App\Role;
 use App\Traits\FlashAlert;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 
-class PermissionController extends Controller
+class RoleController extends Controller
 {
+
     use FlashAlert;
 
     /**
@@ -19,8 +21,8 @@ class PermissionController extends Controller
      */
     public function index()
     {
-        $permissions = Permission::paginate(10);
-        return view('pages.admin.permission.index', compact('permissions'));
+        $roles = Role::paginate(10);
+        return view('pages.admin.role.index', compact('roles'));
     }
 
     /**
@@ -30,7 +32,8 @@ class PermissionController extends Controller
      */
     public function create()
     {
-        return view('pages.admin.permission.create');
+        $permissions = Permission::all();
+        return view('pages.admin.role.create', compact('permissions'));
     }
 
     /**
@@ -42,18 +45,20 @@ class PermissionController extends Controller
     public function store(Request $request)
     {
         $this->validate($request, [
-            'name' => ['required', 'string', 'max:255', 'unique:permissions'],
+            'name' => ['required', 'string', 'max:255', 'unique:roles'],
             'display_name' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:255'],
         ]);
 
-        Permission::create([
+        $role = Role::create([
             'name' => $request->input('name'),
             'display_name' => $request->input('display_name'),
             'description' => $request->input('description'),
         ]);
 
-        return redirect()->route('admin.permission.index')->with($this->alertCreated());
+        $role->attachPermissions($request->input('permissions_id'));
+
+        return redirect()->route('admin.role.index')->with($this->alertCreated());
     }
 
     /**
@@ -76,11 +81,13 @@ class PermissionController extends Controller
     public function edit($id)
     {
         try {
-            $permission = Permission::findOrFail($id);
+            $role = Role::findOrFail($id);
+            $permissions = Permission::all();
+            $rolePermissions = $role->permissions()->get()->pluck('id')->toArray();
 
-            return view('pages.admin.permission.edit', compact('permission'));
+            return view('pages.admin.role.edit', compact('role', 'permissions', 'rolePermissions'));
         } catch (ModelNotFoundException $e) {
-            return redirect()->route('admin.permission.index')->with($this->alertNotFound());
+            return redirect()->route('admin.role.index')->with($this->alertNotFound());
         }
     }
 
@@ -94,23 +101,25 @@ class PermissionController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            $permission = Permission::findOrFail($id);
+            $role = Role::findOrFail($id);
 
             $this->validate($request, [
-                'name' => ['required', 'string', 'max:255', 'unique:permissions,name,' . $id],
+                'name' => ['required', 'string', 'max:255', 'unique:roles,name,' . $id],
                 'display_name' => ['required', 'string', 'max:255'],
                 'description' => ['required', 'string', 'max:255'],
             ]);
 
-            $permission->update([
+            $role->update([
                 'name' => $request->input('name'),
                 'display_name' => $request->input('display_name'),
                 'description' => $request->input('description'),
             ]);
 
-            return redirect()->route('admin.permission.index')->with($this->alertUpdated());
+            $role->syncPermissions($request->input('permissions_id'));
+
+            return redirect()->route('admin.role.index')->with($this->alertUpdated());
         } catch (ModelNotFoundException $e) {
-            return redirect()->route('admin.permission.index')->with($this->alertNotFound());
+            return redirect()->route('admin.role.index')->with($this->alertNotFound());
         }
     }
 
@@ -123,12 +132,13 @@ class PermissionController extends Controller
     public function destroy($id)
     {
         try {
-            $permission = Permission::findOrFail($id);
-            $permission->delete();
+            $role = Role::findOrFail($id);
+            $role->detachPermissions($role->permissions()->get()->pluck('id')->toArray());
+            $role->forceDelete();
 
-            return redirect()->route('admin.permission.index')->with($this->alertDeleted());
+            return redirect()->route('admin.role.index')->with($this->alertDeleted());
         } catch (ModelNotFoundException $e) {
-            return redirect()->route('admin.permission.index')->with($this->alertNotFound());
+            return redirect()->route('admin.role.index')->with($this->alertNotFound());
         }
     }
 }
