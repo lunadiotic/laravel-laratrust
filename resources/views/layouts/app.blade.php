@@ -44,6 +44,10 @@
                         <li class="nav-item">
                             <a href="{{ route('admin.role.index') }}" class="nav-link">Role</a>
                         </li>
+
+                        <li class="nav-item">
+                            <a href="{{ route('article.index') }}" class="nav-link">Article</a>
+                        </li>
                     </ul>
 
                     <!-- Right Side Of Navbar -->
