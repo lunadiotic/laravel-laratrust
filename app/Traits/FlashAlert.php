@@ -46,4 +46,12 @@ trait FlashAlert
             'message' => 'Something wrong!'
         ];
     }
+
+    public function permissionDenied()
+    {
+        return [
+            'type' => 'danger',
+            'message' => 'you don’t have permission to access!'
+        ];
+    }
 }
